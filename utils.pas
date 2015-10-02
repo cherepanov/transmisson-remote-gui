@@ -47,6 +47,7 @@ type
     property FileName: utf8string Read FFilename;
   end;
 
+  
   { TIniFileUtf8 }
 
   TIniFileUtf8 = class(TIniFile)
@@ -57,7 +58,10 @@ type
     constructor Create(const AFileName: string; AEscapeLineFeeds : Boolean = False); override;
     destructor Destroy; override;
     procedure UpdateFile; override;
+    function getFileName() : string;
   end;
+  
+  
 
 function FileOpenUTF8(Const FileName : string; Mode : Integer) : THandle;
 function FileCreateUTF8(Const FileName : string) : THandle;
@@ -398,18 +402,23 @@ var
   cmd, fn: String;
 begin
   Result:=-1;
+  WrkProcess:=TProcess.Create(nil);
+  WrkProcess.Options:=[poNoConsole,poWaitOnExit];
+
   cmd:=FindDefaultExecutablePath('xdg-open');
   if cmd = '' then begin
     cmd:=FindDefaultExecutablePath('gnome-open');
     if cmd = '' then begin
       cmd:=FindDefaultExecutablePath('kioclient');
-      if cmd <> '' then
-        cmd:=cmd + ' exec'
-      else begin
+      if cmd <> '' then begin
+        cmd:=cmd + ' exec';
+	WrkProcess.Parameters.Add('exec');
+      end else begin
         cmd:=FindDefaultExecutablePath('kfmclient');
         if cmd = '' then
           exit;
         cmd:=cmd + ' exec';
+	WrkProcess.Parameters.Add('exec');
       end;
     end;
   end;
@@ -417,11 +426,10 @@ begin
   fn:=FileName;
   if Pos('://', fn) > 0 then
     fn:=StringReplace(fn, '#', '%23', [rfReplaceAll]);
+  Wrkprocess.Parameters.Add(fn);
+  WrkProcess.Executable:=cmd;
 
-  WrkProcess:=TProcess.Create(nil);
   try
-    WrkProcess.Options:=[poNoConsole];
-    WrkProcess.CommandLine:=cmd + ' "' + fn + '"';
     WrkProcess.Execute;
     Result:=WrkProcess.ExitStatus;
   finally
@@ -627,6 +635,13 @@ begin
     end;
   end;
 end;
+
+
+function TIniFileUtf8.getFileName() : string;
+begin
+	result:=FFileName;
+end;
+
 
 finalization
 {$ifdef windows}
